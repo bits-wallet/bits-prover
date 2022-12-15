@@ -14,6 +14,9 @@ std::vector<Leaf> ProverSync::utxoLeafSet;
 
 utreexo::RamForest ProverSync::full(0);
 utreexo::UndoBatch ProverSync::undo;
+uint32_t ProverSync::elapsedUTXOs = 0;
+
+
 
 Prover::Prover(valtype vRawBlock) {
     

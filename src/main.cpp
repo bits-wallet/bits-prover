@@ -56,7 +56,7 @@ std::string getRawBlock(int height) {
   }
 
 int main() {
-        
+            
     new ProverSync();
     
     for (int l = 1; l < 2147483647; l++) {
@@ -129,3 +129,5 @@ int main() {
     
 return 0;
 }
+
+

@@ -17,6 +17,7 @@
 
 class ProverSync {
 public:
+    static uint32_t elapsedUTXOs;
     static utreexo::UndoBatch undo;
     static utreexo::RamForest full;
     static std::vector<UTXO> utxoSet;
