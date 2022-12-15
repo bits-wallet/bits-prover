@@ -12,9 +12,15 @@ uint32_t ProverSync::proverHeight = 0;
 std::vector<UTXO> ProverSync::utxoSet;
 std::vector<Leaf> ProverSync::utxoLeafSet;
 
+utreexo::RamForest ProverSync::full(0);
+utreexo::UndoBatch ProverSync::undo;
+
 Prover::Prover(valtype vRawBlock) {
+    
+    //0. Craft block template
     Block nb = Block::submitNewBlock(vRawBlock);
     std::vector<Transaction> transactions = nb.transactions;
+    
     //1. Collect spending utxos
     for (int i = 0; i < transactions.size(); i++) {
         if(i > 0){
@@ -26,20 +32,20 @@ Prover::Prover(valtype vRawBlock) {
         }
         }
     }
+    
     //2. setSpendingsRaw
     setSpendingsRaw();
+    
     //3. Craft hash array of spendings
     for(int i = 0; i < this->spendings.size(); i++) {
         this->spendingsHashes.push_back(this->spendings[i].returnLeafHash());
     }
     //4. Craft block proof
-    utreexo::UndoBatch unused_undo;
-    utreexo::RamForest full(0);
-    
-    full.Modify(unused_undo, ProverSync::utxoLeafSet, {});
-    full.Prove(this->proof, this->spendingsHashes);
+    ProverSync::full.Prove(this->proof, this->spendingsHashes);
     
     //5. UPDATE UTXO SET
+    uint64_t numAdds = 0;
+    std::vector<Leaf> newLeaves;
     for (int i = 0; i < transactions.size(); i++) {
  
         if(i > 0){
@@ -55,13 +61,21 @@ Prover::Prover(valtype vRawBlock) {
         }
         // Add tx_i outputs to the utxo set
         for (uint32_t k = 0; k < transactions[i].outputs.size(); k++) {
+            numAdds++;
             UTXO newUtxo(ProverSync::proverHeight + 1, transactions[i].txid, k, (transactions[i].outputs[k].amount), transactions[i].outputs[k].scriptPubkey);
             ProverSync::utxoSet.push_back(newUtxo);
             ProverSync::utxoLeafSet.emplace_back(newUtxo.returnLeafHash(), false);
+            newLeaves.emplace_back(newUtxo.returnLeafHash(), false);
         }
     }
-        std::cout << "zxczx: " << ProverSync::utxoSet.size() << std::endl;
-        ProverSync::proverHeight++;
+
+    //6. Update RAM forest
+    ProverSync::full.Modify(ProverSync::undo, newLeaves, this->proof.GetTargets());
+    
+    //7. Increment prover height
+    ProverSync::proverHeight++;
+    
+    std::cout << "zxczx: " << ProverSync::utxoSet.size() << std::endl;
 }
 
 std::pair<uint32_t, UTXO*> ProverSync::returnUTXOFromOutpoint(valtype prevHash, uint32_t vout) {

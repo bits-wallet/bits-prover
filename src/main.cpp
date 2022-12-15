@@ -78,8 +78,7 @@ int main() {
         proverBlock->readProof().Print();
   
         std::cout << "proofBlock: " << proofBlock.size() << std::endl;
-        
-        //std::to_string(l)
+
         std::string p_str = std::to_string(l) + "_p.bin";
         
         char pn[p_str.size()];
@@ -97,7 +96,6 @@ int main() {
         pFile = fopen ( pn , "w+b" );
         fwrite (proofBuffer , 1 , sizeof(proofBuffer) , pFile );
         fclose (pFile);
-        
         
         valtype spendingsBlock = proverBlock->readSpendingsRaw();
         std::cout << "spendingsBlock: " << spendingsBlock.size() << std::endl;
@@ -120,27 +118,12 @@ int main() {
         fwrite (spendingsBuffer , 1 , sizeof(spendingsBuffer) , sFile );
         fclose (sFile);
         
-        
-        
-        
-        
-        
         delete proverBlock;
         
-        
-    
-        
-        
-        
-
         std::cout << "__________PROVER_BLOCK_HEIGHT_" << std::to_string(l) << "_SYNCED_SIZE_" << std::to_string(blockRaw.size()) << "_________"<< std::endl;
-        
-       
-        
+   
     }
 
-    
-    
     std::string s;
     std::cin >> s;
     

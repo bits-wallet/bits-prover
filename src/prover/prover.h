@@ -17,6 +17,8 @@
 
 class ProverSync {
 public:
+    static utreexo::UndoBatch undo;
+    static utreexo::RamForest full;
     static std::vector<UTXO> utxoSet;
     static std::vector<Leaf> utxoLeafSet;
     static std::pair<uint32_t, UTXO*> returnUTXOFromOutpoint(valtype prevHash, uint32_t vout);
