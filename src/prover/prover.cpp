@@ -37,7 +37,7 @@ Prover::Prover(valtype vRawBlock) {
     }
     
     //2. setSpendingsRaw
-    setSpendingsRaw();
+    setCompactSpendingsRaw();
     
     //3. Craft hash array of spendings
     for(int i = 0; i < this->spendings.size(); i++) {
@@ -78,7 +78,7 @@ Prover::Prover(valtype vRawBlock) {
     //7. Increment prover height
     ProverSync::proverHeight++;
     
-    std::cout << "zxczx: " << ProverSync::utxoSet.size() << std::endl;
+    std::cout << "zxczx: " << this->spendings.size() << std::endl;
 }
 
 std::pair<uint32_t, UTXO*> ProverSync::returnUTXOFromOutpoint(valtype prevHash, uint32_t vout) {
@@ -93,7 +93,7 @@ std::pair<uint32_t, UTXO*> ProverSync::returnUTXOFromOutpoint(valtype prevHash, 
     return returnPair;
 }
 
-void Prover::setSpendingsRaw() {
+void Prover::setCompactSpendingsRaw() {
     if(this->spendings.size() > 0) {
     valtype returnValtype;
     valtype numUTXOs = WizData::prefixCompactSizeCast((uint32_t)this->spendings.size());
@@ -115,12 +115,12 @@ void Prover::setSpendingsRaw() {
         
         returnValtype.insert(returnValtype.end(), UTXOfield.begin(), UTXOfield.end());
     }
-    this->spendingsRaw = returnValtype;
+    this->compactSpendingsRaw = returnValtype;
     }
 }
 
 valtype Prover::readSpendingsRaw() {
-    return spendingsRaw;
+    return compactSpendingsRaw;
 }
 
 utreexo::BatchProof Prover::readProof() {

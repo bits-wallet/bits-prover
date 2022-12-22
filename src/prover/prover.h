@@ -30,10 +30,10 @@ public:
 class Prover {
 private:
     utreexo::BatchProof proof;
-    valtype spendingsRaw;
+    valtype compactSpendingsRaw;
     std::vector<UTXO> spendings;
     std::vector<Hash> spendingsHashes;
-    void setSpendingsRaw();
+    void setCompactSpendingsRaw();
 public:
     Prover(valtype vRawBlock);
     valtype readSpendingsRaw();
