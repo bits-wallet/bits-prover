@@ -20,11 +20,13 @@ public:
     static uint32_t elapsedUTXOs;
     static utreexo::UndoBatch undo;
     static utreexo::RamForest full;
-    static std::vector<UTXO> utxoSet;
-    static std::vector<Leaf> utxoLeafSet;
+    
+    static std::vector<UTXO*> utxoSet;
+    
     static std::pair<uint32_t, UTXO*> returnUTXOFromOutpoint(valtype prevHash, uint32_t vout);
     static uint32_t proverHeight;
     ProverSync() {};
+    ~ProverSync() { std::cout <<  " ddeess ps " << std::endl; };
 };
 
 class Prover {

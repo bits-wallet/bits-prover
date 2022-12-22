@@ -9,14 +9,11 @@
 #include "../block/block.h"
 
 uint32_t ProverSync::proverHeight = 0;
-std::vector<UTXO> ProverSync::utxoSet;
-std::vector<Leaf> ProverSync::utxoLeafSet;
+std::vector<UTXO*> ProverSync::utxoSet;
 
 utreexo::RamForest ProverSync::full(0);
 utreexo::UndoBatch ProverSync::undo;
 uint32_t ProverSync::elapsedUTXOs = 0;
-
-
 
 Prover::Prover(valtype vRawBlock) {
     
@@ -57,18 +54,20 @@ Prover::Prover(valtype vRawBlock) {
             std::pair<uint32_t, UTXO*> removeUTXO;
             removeUTXO = ProverSync::returnUTXOFromOutpoint(transactions[i].inputs[k].prevOutHash, transactions[i].inputs[k].voutIndex);
             ProverSync::utxoSet.erase(ProverSync::utxoSet.begin() + removeUTXO.first);
-            //
-            ProverSync::utxoLeafSet.erase(ProverSync::utxoLeafSet.begin() + removeUTXO.first);
-            //delete removeUTXO.second;
+            delete removeUTXO.second;
         }
         }
         // Add tx_i outputs to the utxo set
         for (uint32_t k = 0; k < transactions[i].outputs.size(); k++) {
+
             numAdds++;
-            UTXO newUtxo(ProverSync::proverHeight + 1, transactions[i].txid, k, (transactions[i].outputs[k].amount), transactions[i].outputs[k].scriptPubkey);
+            
+            UTXO *newUtxo = new UTXO(ProverSync::proverHeight + 1, transactions[i].txid, k, (transactions[i].outputs[k].amount), transactions[i].outputs[k].scriptPubkey);
+               
             ProverSync::utxoSet.push_back(newUtxo);
-            ProverSync::utxoLeafSet.emplace_back(newUtxo.returnLeafHash(), false);
-            newLeaves.emplace_back(newUtxo.returnLeafHash(), false);
+           
+            newLeaves.emplace_back(newUtxo->returnLeafHash(), false);
+
         }
     }
 
@@ -77,16 +76,14 @@ Prover::Prover(valtype vRawBlock) {
     
     //7. Increment prover height
     ProverSync::proverHeight++;
-    
-    std::cout << "zxczx: " << this->spendings.size() << std::endl;
 }
 
 std::pair<uint32_t, UTXO*> ProverSync::returnUTXOFromOutpoint(valtype prevHash, uint32_t vout) {
     std::pair<uint32_t, UTXO*> returnPair;
     for(uint32_t i = 0; i < ProverSync::utxoSet.size(); i++) {
-        if((ProverSync::utxoSet[i].prevHash == prevHash) && (ProverSync::utxoSet[i].vout == vout)) {
+        if((ProverSync::utxoSet[i]->prevHash == prevHash) && (ProverSync::utxoSet[i]->vout == vout)) {
             returnPair.first = i;
-            returnPair.second = &ProverSync::utxoSet[i];
+            returnPair.second = ProverSync::utxoSet[i];
             return returnPair;
         }
     }
