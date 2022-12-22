@@ -107,12 +107,6 @@ void Prover::setSpendingsRaw() {
         valtype UTXOHeight = *WizData::Uint32ToLE(spendings[i].height);
         UTXOfield.insert(UTXOfield.end(), UTXOHeight.begin(), UTXOHeight.end());
         
-        valtype UTXOPrevHash = spendings[i].prevHash;
-        UTXOfield.insert(UTXOfield.end(), UTXOPrevHash.begin(), UTXOPrevHash.end());
-        
-        valtype UTXOVout = *WizData::Uint32ToLE(spendings[i].vout);
-        UTXOfield.insert(UTXOfield.end(), UTXOVout.begin(), UTXOVout.end());
-        
         valtype UTXOValue = *WizData::Uint64ToLE(spendings[i].value);
         UTXOfield.insert(UTXOfield.end(), UTXOValue.begin(), UTXOValue.end());
         
