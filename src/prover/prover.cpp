@@ -24,64 +24,84 @@ Prover::Prover(valtype vRawBlock) {
     //1. Collect spending utxos
     for (int i = 0; i < transactions.size(); i++) {
         if(i > 0){
-        // Remove tx_i inputs from the utxo set
         for (uint32_t k = 0; k < transactions[i].inputs.size(); k++) {
-            std::pair<uint32_t, UTXO*> spendingUTXO;
-            spendingUTXO = ProverSync::returnUTXOFromOutpoint(transactions[i].inputs[k].prevOutHash, transactions[i].inputs[k].voutIndex);
-            this->spendings.push_back(*(spendingUTXO.second));
+            int exist = 0;
+            std::pair<uint32_t, UTXO*> spendingUTXO = ProverSync::returnUTXOFromOutpoint(transactions[i].inputs[k].prevOutHash, transactions[i].inputs[k].voutIndex, &exist);
+            if (exist == 1)
+                this->spendings.push_back(spendingUTXO.second);
         }
         }
     }
-    
+
     //2. setSpendingsRaw
     setCompactSpendingsRaw();
     
     //3. Craft hash array of spendings
     for(int i = 0; i < this->spendings.size(); i++) {
-        this->spendingsHashes.push_back(this->spendings[i].returnLeafHash());
+        this->spendingsHashes.push_back(this->spendings[i]->returnLeafHash());
     }
+
     //4. Craft block proof
     ProverSync::full.Prove(this->proof, this->spendingsHashes);
     
-    //5. UPDATE UTXO SET
-    uint64_t numAdds = 0;
     std::vector<Leaf> newLeaves;
+    std::vector<UTXO*> newUTXOs;
+    
     for (int i = 0; i < transactions.size(); i++) {
+        
+        //5. Collect new outputs
+        for (uint32_t k = 0; k < transactions[i].outputs.size(); k++) {
+            std::cout << "outs before log" << std::endl;
+            UTXO *newUTXO;
+            newUTXO = new UTXO(ProverSync::proverHeight + 1, transactions[i].txid, k, (transactions[i].outputs[k].amount), transactions[i].outputs[k].scriptPubkey);
+            newUTXOs.push_back(newUTXO);
+            newLeaves.emplace_back(newUTXO->returnLeafHash(), false);
+        }
  
         if(i > 0){
-        // Remove tx_i inputs from the utxo set
         for (uint32_t k = 0; k < transactions[i].inputs.size(); k++) {
-            std::pair<uint32_t, UTXO*> removeUTXO;
-            removeUTXO = ProverSync::returnUTXOFromOutpoint(transactions[i].inputs[k].prevOutHash, transactions[i].inputs[k].voutIndex);
-            ProverSync::utxoSet.erase(ProverSync::utxoSet.begin() + removeUTXO.first);
-            delete removeUTXO.second;
-        }
-        }
-        // Add tx_i outputs to the utxo set
-        for (uint32_t k = 0; k < transactions[i].outputs.size(); k++) {
-
-            numAdds++;
             
-            UTXO *newUtxo = new UTXO(ProverSync::proverHeight + 1, transactions[i].txid, k, (transactions[i].outputs[k].amount), transactions[i].outputs[k].scriptPubkey);
-               
-            ProverSync::utxoSet.push_back(newUtxo);
-           
-            newLeaves.emplace_back(newUtxo->returnLeafHash(), false);
-
+            int exist = 0;
+            std::pair<uint32_t, UTXO*> removeUTXO;
+            removeUTXO = ProverSync::returnUTXOFromOutpoint(transactions[i].inputs[k].prevOutHash, transactions[i].inputs[k].voutIndex, &exist);
+            
+            //6. Remove spent TXOs from the utxo set
+            if(exist == 1) {
+                ProverSync::utxoSet.erase(ProverSync::utxoSet.begin() + removeUTXO.first);
+                delete removeUTXO.second;
+            }
+            
+            //7. Prevent same-block outputs from new outputs collection
+            for (uint32_t m = 0; m < newUTXOs.size(); m++) {
+                if((transactions[i].inputs[k].prevOutHash == newUTXOs[m]->prevHash) && (transactions[i].inputs[k].voutIndex == newUTXOs[m]->vout)){
+                    newUTXOs.erase(newUTXOs.begin() + m);
+                    newLeaves.erase(newLeaves.begin() + m);
+                    m -= 1;
+                }
+            }
+        }
         }
     }
-
-    //6. Update RAM forest
-    ProverSync::full.Modify(ProverSync::undo, newLeaves, this->proof.GetTargets());
     
-    //7. Increment prover height
+    //8. Push new outputs collection to the UTXO set
+    for (int i = 0; i < newUTXOs.size(); i++) {
+        ProverSync::utxoSet.push_back(newUTXOs[i]);
+    }
+
+    //9. Update RAM forest
+    ProverSync::full.Modify(ProverSync::undo, newLeaves, this->proof.GetTargets());
+
+    //10. Increment prover height
     ProverSync::proverHeight++;
+    
+    std::cout << "utxo set size: " << ProverSync::utxoSet.size() << std::endl;
 }
 
-std::pair<uint32_t, UTXO*> ProverSync::returnUTXOFromOutpoint(valtype prevHash, uint32_t vout) {
+std::pair<uint32_t, UTXO*> ProverSync::returnUTXOFromOutpoint(valtype prevHash, uint32_t vout, int *ex) {
     std::pair<uint32_t, UTXO*> returnPair;
     for(uint32_t i = 0; i < ProverSync::utxoSet.size(); i++) {
         if((ProverSync::utxoSet[i]->prevHash == prevHash) && (ProverSync::utxoSet[i]->vout == vout)) {
+            *ex = 1;
             returnPair.first = i;
             returnPair.second = ProverSync::utxoSet[i];
             return returnPair;
@@ -98,13 +118,13 @@ void Prover::setCompactSpendingsRaw() {
     
     for(int i = 0; i < spendings.size(); i++) {
         valtype UTXOfield;
-        valtype UTXOScriptPubkey = spendings[i].scriptPubkey;
+        valtype UTXOScriptPubkey = spendings[i]->scriptPubkey;
         valtype scriptPubkeyLen = WizData::prefixCompactSizeCast((uint32_t)(UTXOScriptPubkey.size()));
         
-        valtype UTXOHeight = *WizData::Uint32ToLE(spendings[i].height);
+        valtype UTXOHeight = *WizData::Uint32ToLE(spendings[i]->height);
         UTXOfield.insert(UTXOfield.end(), UTXOHeight.begin(), UTXOHeight.end());
         
-        valtype UTXOValue = *WizData::Uint64ToLE(spendings[i].value);
+        valtype UTXOValue = *WizData::Uint64ToLE(spendings[i]->value);
         UTXOfield.insert(UTXOfield.end(), UTXOValue.begin(), UTXOValue.end());
         
         UTXOfield.insert(UTXOfield.end(), scriptPubkeyLen.begin(), scriptPubkeyLen.end());

@@ -79,12 +79,9 @@ int main() {
   
         std::cout << "proofBlock: " << proofBlock.size() << std::endl;
 
-        std::string p_str = std::to_string(l) + "_p.bin";
+        std::string tmp1 = std::to_string(l) + "_p.bin";
+        char const *pn = tmp1.c_str();
         
-        char pn[p_str.size()];
-        for (int m = 0; m < p_str.size(); m++) {
-            pn[m] = p_str[m];
-        }
         FILE * pFile;
         
         char proofBuffer[proofBlock.size()];
@@ -100,12 +97,10 @@ int main() {
         valtype spendingsBlock = proverBlock->readSpendingsRaw();
         std::cout << "spendingsBlock: " << spendingsBlock.size() << std::endl;
         
-        //std::to_string(l)
-        std::string s_str = std::to_string(l) + "_s.bin";
-        char fn[s_str.size()];
-        for (int m = 0; m < s_str.size(); m++) {
-            fn[m] = s_str[m];
-        }
+        ///
+            std::string tmp2 = std::to_string(l) + "_s.bin";
+            char const *fn = tmp2.c_str();
+        
         FILE * sFile;
         
         char spendingsBuffer[spendingsBlock.size()];
